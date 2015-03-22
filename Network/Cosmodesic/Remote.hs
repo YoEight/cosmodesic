@@ -52,30 +52,25 @@ local :: Typeable a => a -> Remote a
 local n = Local "tag" n
 
 --------------------------------------------------------------------------------
-collectRefs :: Remote a -> S.Set ByteString
-collectRefs (Ref n)       = S.singleton n
-collectRefs (Local _ _)   = S.empty
-collectRefs (Ap f a)      = collectRefs f <> collectRefs a
-collectRefs (Ap2 f a b)   = collectRefs f <>
-                            collectRefs a <>
-                            collectRefs b
-collectRefs (Ap3 f a b c) = collectRefs f <>
-                            collectRefs a <>
-                            collectRefs b <>
-                            collectRefs c
+refs :: Remote a -> S.Set ByteString
+refs (Ref n)       = S.singleton n
+refs (Local _ _)   = S.empty
+refs (Ap f a)      = refs f <> refs a
+refs (Ap2 f a b)   = refs f <> refs a <> refs b
+refs (Ap3 f a b c) = refs f <> refs a <> refs b <> refs c
 
 --------------------------------------------------------------------------------
-remoteAp :: Remote (a -> b) -> Remote a -> Remote b
-remoteAp = Ap
+app :: Remote (a -> b) -> Remote a -> Remote b
+app = Ap
 
 --------------------------------------------------------------------------------
-remoteAp2 :: Remote (a -> b -> c) -> Remote a -> Remote b -> Remote c
-remoteAp2 = Ap2
+app2 :: Remote (a -> b -> c) -> Remote a -> Remote b -> Remote c
+app2 = Ap2
 
 --------------------------------------------------------------------------------
-remoteAp3 :: Remote (a -> b -> c -> d)
-          -> Remote a
-          -> Remote b
-          -> Remote c
-          -> Remote d
-remoteAp3 = Ap3
+app3 :: Remote (a -> b -> c -> d)
+     -> Remote a
+     -> Remote b
+     -> Remote c
+     -> Remote d
+app3 = Ap3
