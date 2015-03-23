@@ -45,68 +45,68 @@ pureFn :: a -> PureFn a
 pureFn = PureFn
 
 --------------------------------------------------------------------------------
-filterTypeRep :: [(TypeRep, Dynamic)] -> [ExpectedType]
+filterTypeRep :: [(TypeRep, Object)] -> [ExpectedType]
 filterTypeRep xs =
   [ ExpectedType (show tpe) (show tped)
-      | (tpe, dyn) <- xs, let tped = dynTypeRep dyn, tpe /= tped ]
+      | (tpe, obj) <- xs, let tped = objectRep obj, tpe /= tped ]
 
 --------------------------------------------------------------------------------
 class Valuable a where
-    valuable :: a -> [Response Dynamic] -> Response Dynamic
+    valuable :: a -> Value
 
 --------------------------------------------------------------------------------
-instance Typeable a => Valuable (Simple a) where
-    valuable (Simple a) [] = return $ toDyn a
+instance Serializable a => Valuable (Simple a) where
+    valuable (Simple a) [] = return $ object a
     valuable _ xs          = throwError $ WrongArity 0 (length xs)
 
 --------------------------------------------------------------------------------
-instance (Typeable a, Typeable b) => Valuable (PureFn (a -> b)) where
+instance (Serializable a, Serializable b) => Valuable (PureFn (a -> b)) where
     valuable (PureFn f) [xm] = do
         x <- xm
-        case fromDynamic x of
-            Just a -> return $ toDyn $ f a
+        case fromObject x of
+            Just a -> return $ object $ f a
             _      ->
                 let tpee = show $ typeRep (Proxy :: Proxy a)
-                    tpea = show $ dynTypeRep x
+                    tpea = show $ objectRep x
                     exp  = ExpectedType tpee tpea in
                 throwError $ InvalidType [exp]
     valuable _ xs = throwError $ WrongArity 1 (length xs)
 
---------------------------------------------------------------------------------
-instance ( Typeable a
-         , Typeable b
-         , Typeable c )
-         => Valuable (PureFn (a -> b -> c)) where
-    valuable (PureFn f) xs@[xm,ym] = do
-        xs'@[am, bm] <- sequence xs
-        case f <$> fromDynamic am <*> fromDynamic bm of
-            Just c -> return $ toDyn c
-            _      ->
-                let exps = [ typeRep (Proxy :: Proxy a)
-                           , typeRep (Proxy :: Proxy b)
-                           ]
-                    tpes = filterTypeRep $ zip exps xs' in
-                throwError $ InvalidType tpes
-    valuable _ xs = throwError $ WrongArity 2 (length xs)
+-- --------------------------------------------------------------------------------
+-- instance ( Serializable a
+--          , Serializable b
+--          , Serializable c )
+--          => Valuable (PureFn (a -> b -> c)) where
+--     valuable (PureFn f) xs@[xm,ym] = do
+--         xs'@[am, bm] <- sequence xs
+--         case f <$> fromObject am <*> fromObject bm of
+--             Just c -> return $ object c
+--             _      ->
+--                 let exps = [ typeRep (Proxy :: Proxy a)
+--                            , typeRep (Proxy :: Proxy b)
+--                            ]
+--                     tpes = filterTypeRep $ zip exps xs' in
+--                 throwError $ InvalidType tpes
+--     valuable _ xs = throwError $ WrongArity 2 (length xs)
 
---------------------------------------------------------------------------------
-instance ( Typeable a
-         , Typeable b
-         , Typeable c
-         , Typeable d )
-         => Valuable (PureFn (a -> b -> c -> d)) where
-    valuable (PureFn f) xs@[xm,ym,zm] = do
-        xs'@[am, bm, cm] <- sequence xs
-        case f <$>
-             fromDynamic am <*>
-             fromDynamic bm <*>
-             fromDynamic cm of
-            Just d -> return $ toDyn d
-            _      ->
-                let exps = [ typeRep (Proxy :: Proxy a)
-                           , typeRep (Proxy :: Proxy b)
-                           , typeRep (Proxy :: Proxy c)
-                           ]
-                    tpes = filterTypeRep $ zip exps xs' in
-                throwError $ InvalidType tpes
-    valuable _ xs = throwError $ WrongArity 3 (length xs)
+-- --------------------------------------------------------------------------------
+-- instance ( Serializable a
+--          , Serializable b
+--          , Serializable c
+--          , Serializable d )
+--          => Valuable (PureFn (a -> b -> c -> d)) where
+--     valuable (PureFn f) xs@[xm,ym,zm] = do
+--         xs'@[am, bm, cm] <- sequence xs
+--         case f <$>
+--              fromObject am <*>
+--              fromObject bm <*>
+--              fromObject cm of
+--             Just d -> return $ object d
+--             _      ->
+--                 let exps = [ typeRep (Proxy :: Proxy a)
+--                            , typeRep (Proxy :: Proxy b)
+--                            , typeRep (Proxy :: Proxy c)
+--                            ]
+--                     tpes = filterTypeRep $ zip exps xs' in
+--                 throwError $ InvalidType tpes
+--     valuable _ xs = throwError $ WrongArity 3 (length xs)

@@ -1,4 +1,7 @@
+{-# LANGUAGE ExistentialQuantification  #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE UndecidableInstances       #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module : Network.Cosmodesic.Types
@@ -15,12 +18,13 @@ module Network.Cosmodesic.Types where
 --------------------------------------------------------------------------------
 import           Control.Applicative
 import           Data.ByteString
-import           Data.Dynamic
 import qualified Data.Map.Strict as M
+import           Data.Typeable
 
 --------------------------------------------------------------------------------
 import Control.Monad.Except
 import Control.Monad.Reader
+import Data.Serialize
 
 --------------------------------------------------------------------------------
 data ExpectedType = ExpectedType String String
@@ -31,7 +35,30 @@ data RespError
   | InvalidType [ExpectedType]
 
 --------------------------------------------------------------------------------
-type Value = [Response Dynamic] -> Response Dynamic
+data Object = forall a. Serializable a => Object a
+
+--------------------------------------------------------------------------------
+object :: Serializable a => a -> Object
+object = Object
+
+--------------------------------------------------------------------------------
+fromObject :: Serializable a => Object -> Maybe a
+fromObject (Object o) = cast o
+
+--------------------------------------------------------------------------------
+objectRep :: Object -> TypeRep
+objectRep (Object o) = typeOf o
+
+--------------------------------------------------------------------------------
+type Value = [Response Object] -> Response Object
+
+data RemoteLabel
+    = RemoteLabel ByteString
+    | RemoteApply RemoteLabel RemoteLabel
+
+data Remote' a = Remote' RemoteLabel
+
+data Value' a = Value' (Remote' (Context -> a)) Context
 
 --------------------------------------------------------------------------------
 newtype Values = Values { _vals :: M.Map ByteString Value }
@@ -48,3 +75,9 @@ newtype Response a =
              , MonadReader Context
              , MonadError RespError
              )
+
+--------------------------------------------------------------------------------
+class (Typeable a, Serialize a) => Serializable a
+
+--------------------------------------------------------------------------------
+instance (Typeable a, Serialize a) => Serializable a

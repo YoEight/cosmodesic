@@ -36,4 +36,4 @@ import Network.Cosmodesic.Types
 import Network.Cosmodesic.Values
 
 --------------------------------------------------------------------------------
-decls = declare "sum" $ pureFn $ \(xs :: [Int]) -> sum xs
+decls = declare "sum" $ pureFn $ \(x :: Int, y) -> x + y
